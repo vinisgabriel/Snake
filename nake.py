@@ -1,10 +1,11 @@
 # Simple Snake Game in Python 3 with Persistent High Score and Cheat Modes
-# By @TokyoEdTech (Modificado para salvar o High Score, cheats sequenciais, travar redimensionamento, isolar o placar e Menu/Ajuda)
+# By @TokyoEdTech (Modificado para salvar o High Score, cheats sequenciais, travar redimensionamento, isolar o placar, Menu/Ajuda e Pisca)
 
 import turtle
 import time
 import random
 import os
+import _tkinter  # Importado para capturar erros de interface ao fechar a janela
 
 delay = 0.1
 
@@ -19,6 +20,11 @@ estado_jogo = "menu"
 cheat_atravessar = False  # Ativado com "atr"
 cheat_invencivel = False  # Ativado com "inv"
 cheat_dez_vezes = False  # Ativado com "dez"
+cheat_pisca = False  # Ativado com "pisc"
+
+# Variáveis para o controle do efeito pisca-pisca
+ultimo_pisca = 0.0
+cor_invertida = False
 
 # Variáveis para controlar a exibição temporária das mensagens das trapaças
 mostrar_mensagem_trapaca = False
@@ -155,14 +161,17 @@ def mostrar_ajuda_trapacas():
     pen.goto(0, 50)
     pen.write("Digite as letras em sequência durante o jogo:", align="center", font=("Courier", 12, "italic"))
 
-    pen.goto(0, 0)
-    pen.write("atr - Atravessar paredes", align="center", font=("Courier", 16, "normal"))
+    pen.goto(0, 10)
+    pen.write("atr  - Atravessar paredes", align="center", font=("Courier", 16, "normal"))
 
-    pen.goto(0, -40)
-    pen.write("inv - Invencibilidade (corpo)", align="center", font=("Courier", 16, "normal"))
+    pen.goto(0, -30)
+    pen.write("inv  - Invencibilidade (corpo)", align="center", font=("Courier", 16, "normal"))
 
-    pen.goto(0, -80)
-    pen.write("dez - Comida Laranja / Vale 10 Pontos", align="center", font=("Courier", 16, "normal"))
+    pen.goto(0, -70)
+    pen.write("dez  - Comida Laranja / Vale 10 Pontos", align="center", font=("Courier", 16, "normal"))
+
+    pen.goto(0, -110)
+    pen.write("pisc - Cobrinha Pisca-Pisca (1s)", align="center", font=("Courier", 16, "normal"))
 
     pen.color("white")
     pen.goto(0, -180)
@@ -170,13 +179,16 @@ def mostrar_ajuda_trapacas():
 
 
 def iniciar_jogo():
-    global estado_jogo, score
+    global estado_jogo, score, cheat_pisca, cor_invertida
     estado_jogo = "jogando"
     score = 0
+    cheat_pisca = False
+    cor_invertida = False
 
-    # Reseta posições e exibe cobra e comida
+    # Reseta posições e exibe cobra e comida com as cores originais
     head.goto(0, 0)
     head.direction = "stop"
+    head.color("green")
     head.showturtle()
 
     food.goto(0, 100)
@@ -246,18 +258,19 @@ teclas_pressionadas = ""
 
 
 def registrar_tecla(char):
-    global teclas_pressionadas, cheat_atravessar, cheat_invencivel, cheat_dez_vezes, mostrar_mensagem_trapaca, tempo_mensagem_trapaca
+    global teclas_pressionadas, cheat_atravessar, cheat_invencivel, cheat_dez_vezes, cheat_pisca, mostrar_mensagem_trapaca, tempo_mensagem_trapaca
 
     if estado_jogo != "jogando":
         return  # Cheats só funcionam enquanto estiver jogando
 
     teclas_pressionadas += char
 
-    if len(teclas_pressionadas) > 3:
-        teclas_pressionadas = teclas_pressionadas[-3:]
+    # Permite analisar até as últimas 4 letras digitadas para incluir "pisc"
+    if len(teclas_pressionadas) > 4:
+        teclas_pressionadas = teclas_pressionadas[-4:]
 
     # Cheat 1: "atr" (Atravessar paredes)
-    if teclas_pressionadas == "atr":
+    if teclas_pressionadas.endswith("atr"):
         cheat_atravessar = not cheat_atravessar
         teclas_pressionadas = ""
 
@@ -271,7 +284,7 @@ def registrar_tecla(char):
             pen_cheat.write("Trapaça Desativada!", align="center", font=("Courier", 20, "bold"))
 
     # Cheat 2: "inv" (Invencibilidade contra o corpo)
-    elif teclas_pressionadas == "inv":
+    elif teclas_pressionadas.endswith("inv"):
         cheat_invencivel = not cheat_invencivel
         teclas_pressionadas = ""
 
@@ -285,7 +298,7 @@ def registrar_tecla(char):
             pen_cheat.write("Invencibilidade Desativada!", align="center", font=("Courier", 20, "bold"))
 
     # Cheat 3: "dez" (Pontos valem 10 e comida laranja)
-    elif teclas_pressionadas == "dez":
+    elif teclas_pressionadas.endswith("dez"):
         cheat_dez_vezes = not cheat_dez_vezes
         teclas_pressionadas = ""
 
@@ -299,6 +312,24 @@ def registrar_tecla(char):
         else:
             food.color("red")
             pen_cheat.write("Multiplicador 10x Desativado!", align="center", font=("Courier", 20, "bold"))
+
+    # Cheat 4: "pisc" (Inverter cores de 1 em 1 segundo)
+    elif teclas_pressionadas.endswith("pisc"):
+        cheat_pisca = not cheat_pisca
+        teclas_pressionadas = ""
+
+        mostrar_mensagem_trapaca = True
+        tempo_mensagem_trapaca = time.time()
+
+        pen_cheat.clear()
+        if cheat_pisca:
+            pen_cheat.write("Pisca-Pisca Ativado!", align="center", font=("Courier", 20, "bold"))
+        else:
+            pen_cheat.write("Pisca-Pisca Desativado!", align="center", font=("Courier", 20, "bold"))
+            # Restaura as cores originais da cobra imediatamente ao desligar
+            head.color("green")
+            for segment in segments:
+                segment.color("lightgreen")
 
 
 # --- FUNÇÕES DE CONTROLE DE MENU/TELAS ---
@@ -345,7 +376,7 @@ wn.onkeypress(pressionou_m, "M")
 wn.onkeypress(pressionou_b, "b")
 wn.onkeypress(pressionou_b, "B")
 
-# Registra as teclas individuais para as senhas "atr", "inv" e "dez"
+# Registra as teclas individuais para as senhas "atr", "inv", "dez" e "pisc"
 wn.onkeypress(lambda: registrar_tecla("a"), "a")
 wn.onkeypress(lambda: registrar_tecla("t"), "t")
 wn.onkeypress(lambda: registrar_tecla("r"), "r")
@@ -355,112 +386,139 @@ wn.onkeypress(lambda: registrar_tecla("v"), "v")
 wn.onkeypress(lambda: registrar_tecla("d"), "d")
 wn.onkeypress(lambda: registrar_tecla("e"), "e")
 wn.onkeypress(lambda: registrar_tecla("z"), "z")
+wn.onkeypress(lambda: registrar_tecla("p"), "p")
+wn.onkeypress(lambda: registrar_tecla("s"), "s")
+wn.onkeypress(lambda: registrar_tecla("c"), "c")
 
 # Exibe o menu inicialmente ao abrir o script
 mostrar_menu()
 
-# Loop principal do jogo
-while True:
-    wn.update()
+# Loop principal do jogo com tratamento contra erro ao fechar a janela
+try:
+    while True:
+        wn.update()
 
-    if estado_jogo == "jogando":
-        # Lógica do timer de 5 segundos para a mensagem sumir
-        if mostrar_mensagem_trapaca:
-            if time.time() - tempo_mensagem_trapaca > 5.0:
-                pen_cheat.clear()
-                mostrar_mensagem_trapaca = False
+        if estado_jogo == "jogando":
+            # Lógica do timer de 5 segundos para a mensagem sumir
+            if mostrar_mensagem_trapaca:
+                if time.time() - tempo_mensagem_trapaca > 5.0:
+                    pen_cheat.clear()
+                    mostrar_mensagem_trapaca = False
 
-        # Verificar colisão com as bordas
-        if head.xcor() > 290 or head.xcor() < -290 or head.ycor() > 290 or head.ycor() < -290:
-            if cheat_atravessar:
-                if head.xcor() > 290:
-                    head.setx(-290)
-                elif head.xcor() < -290:
-                    head.setx(290)
-                elif head.ycor() > 290:
-                    head.sety(-290)
-                elif head.ycor() < -290:
-                    head.sety(290)
-            else:
-                time.sleep(1)
+            # Lógica do efeito Pisca-Pisca (Inverte cores a cada 1.0 segundo)
+            if cheat_pisca:
+                if time.time() - ultimo_pisca >= 1.0:
+                    cor_invertida = not cor_invertida
+                    ultimo_pisca = time.time()
 
-                # Esconde o corpo da cobra
-                for segment in segments:
-                    segment.goto(1000, 1000)
-                segments.clear()
+                    if cor_invertida:
+                        head.color("lightgreen")
+                        for segment in segments:
+                            segment.color("green")
+                    else:
+                        head.color("green")
+                        for segment in segments:
+                            segment.color("lightgreen")
 
-                delay = 0.1
-
-                # Garante comida em local seguro no reset
-                x = random.randint(-290, 290)
-                y = random.randint(-290, 220)
-                food.goto(x, y)
-
-                mostrar_menu()
-
-        # Verificar colisão com a comida
-        if head.distance(food) < 20:
-            x = random.randint(-290, 290)
-            y = random.randint(-290, 220)
-            food.goto(x, y)
-
-            new_segment = turtle.Turtle()
-            new_segment.speed(0)
-            new_segment.shape("square")
-            new_segment.color("lightgreen")
-            new_segment.penup()
-            segments.append(new_segment)
-
-            delay -= 0.001
-
-            if cheat_dez_vezes:
-                score += 10
-            else:
-                score += 1
-
-            if score > high_score:
-                high_score = score
-                save_high_score(high_score)
-
-            atualizar_placar()
-
-        # Move os segmentos do corpo
-        for index in range(len(segments) - 1, 0, -1):
-            x = segments[index - 1].xcor()
-            y = segments[index - 1].ycor()
-            segments[index].goto(x, y)
-
-        if len(segments) > 0:
-            x = head.xcor()
-            y = head.ycor()
-            segments[0].goto(x, y)
-
-        move()
-
-        # Verificar colisão da cabeça com o corpo
-        for segment in segments:
-            if segment.distance(head) < 20:
-                if cheat_invencivel:
-                    pass
+            # Verificar colisão com as bordas
+            if head.xcor() > 290 or head.xcor() < -290 or head.ycor() > 290 or head.ycor() < -290:
+                if cheat_atravessar:
+                    if head.xcor() > 290:
+                        head.setx(-290)
+                    elif head.xcor() < -290:
+                        head.setx(290)
+                    elif head.ycor() > 290:
+                        head.sety(-290)
+                    elif head.ycor() < -290:
+                        head.sety(290)
                 else:
                     time.sleep(1)
 
+                    # Esconde o corpo da cobra
                     for segment in segments:
                         segment.goto(1000, 1000)
                     segments.clear()
 
                     delay = 0.1
 
-                    # Garante comida em local seguro
+                    # Garante comida em local seguro no reset
                     x = random.randint(-290, 290)
                     y = random.randint(-290, 220)
                     food.goto(x, y)
 
                     mostrar_menu()
 
-        time.sleep(delay)
-    else:
-        # Se estiver no menu, créditos ou ajuda, o jogo simplesmente espera o input das teclas
-        time.sleep(0.05)
+            # Verificar colisão com a comida
+            if head.distance(food) < 20:
+                x = random.randint(-290, 290)
+                y = random.randint(-290, 220)
+                food.goto(x, y)
 
-wn.mainloop()
+                new_segment = turtle.Turtle()
+                new_segment.speed(0)
+                new_segment.shape("square")
+
+                # Se o cheat de piscar estiver ativo, cria o novo segmento na cor certa do momento
+                if cheat_pisca and cor_invertida:
+                    new_segment.color("green")
+                else:
+                    new_segment.color("lightgreen")
+
+                new_segment.penup()
+                segments.append(new_segment)
+
+                delay -= 0.001
+
+                if cheat_dez_vezes:
+                    score += 10
+                else:
+                    score += 1
+
+                if score > high_score:
+                    high_score = score
+                    save_high_score(high_score)
+
+                atualizar_placar()
+
+            # Move os segmentos do corpo
+            for index in range(len(segments) - 1, 0, -1):
+                x = segments[index - 1].xcor()
+                y = segments[index - 1].ycor()
+                segments[index].goto(x, y)
+
+            if len(segments) > 0:
+                x = head.xcor()
+                y = head.ycor()
+                segments[0].goto(x, y)
+
+            move()
+
+            # Verificar colisão da cabeça com o corpo
+            for segment in segments:
+                if segment.distance(head) < 20:
+                    if cheat_invencivel:
+                        pass
+                    else:
+                        time.sleep(1)
+
+                        for segment in segments:
+                            segment.goto(1000, 1000)
+                        segments.clear()
+
+                        delay = 0.1
+
+                        # Garante comida em local seguro
+                        x = random.randint(-290, 290)
+                        y = random.randint(-290, 220)
+                        food.goto(x, y)
+
+                        mostrar_menu()
+
+            time.sleep(delay)
+        else:
+            # Se estiver no menu, créditos ou ajuda, o jogo simplesmente espera o input das teclas
+            time.sleep(0.05)
+
+except (turtle.Terminator, _tkinter.TclError):
+    # Trata de forma amigável e encerra o script sem estourar Tracebacks
+    pass
