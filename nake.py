@@ -355,17 +355,37 @@ def pressionou_b():
         mostrar_creditos()
 
 
-# Atalhos do teclado
+# --- FUNÇÕES HÍBRIDAS PARA O TECLADO (CORREÇÃO) ---
+# Executam o movimento e mandam a letra pro validador de senha ao mesmo tempo
+def pressionou_w():
+    go_up()
+
+def pressionou_s():
+    go_down()
+    registrar_tecla("s")
+
+def pressionou_a():
+    go_left()
+    registrar_tecla("a")
+
+def pressionou_d():
+    go_right()
+    registrar_tecla("d")
+
+
+# Configuração dos escutadores de eventos do teclado
 wn.listen()
 
-# Movimentos (WASD / Setas)
-wn.onkeypress(go_up, "w")
+# Movimentos mapeados por funções dedicadas (Sem duplicidade)
+wn.onkeypress(pressionou_w, "w")
+wn.onkeypress(pressionou_s, "s")
+wn.onkeypress(pressionou_a, "a")
+wn.onkeypress(pressionou_d, "d")
+
+# Setas direcionais continuam com a chamada direta de movimento
 wn.onkeypress(go_up, "Up")
-wn.onkeypress(go_down, "s")
 wn.onkeypress(go_down, "Down")
-wn.onkeypress(go_left, "a")
 wn.onkeypress(go_left, "Left")
-wn.onkeypress(go_right, "d")
 wn.onkeypress(go_right, "Right")
 
 # Atalhos exclusivos do Menu, Créditos e Ajuda
@@ -376,18 +396,15 @@ wn.onkeypress(pressionou_m, "M")
 wn.onkeypress(pressionou_b, "b")
 wn.onkeypress(pressionou_b, "B")
 
-# Registra as teclas individuais para as senhas "atr", "inv", "dez" e "pisc"
-wn.onkeypress(lambda: registrar_tecla("a"), "a")
+# Registra as demais letras dos cheats (Apenas as que NÃO são usadas no WASD)
 wn.onkeypress(lambda: registrar_tecla("t"), "t")
 wn.onkeypress(lambda: registrar_tecla("r"), "r")
 wn.onkeypress(lambda: registrar_tecla("i"), "i")
 wn.onkeypress(lambda: registrar_tecla("n"), "n")
 wn.onkeypress(lambda: registrar_tecla("v"), "v")
-wn.onkeypress(lambda: registrar_tecla("d"), "d")
 wn.onkeypress(lambda: registrar_tecla("e"), "e")
 wn.onkeypress(lambda: registrar_tecla("z"), "z")
 wn.onkeypress(lambda: registrar_tecla("p"), "p")
-wn.onkeypress(lambda: registrar_tecla("s"), "s")
 wn.onkeypress(lambda: registrar_tecla("c"), "c")
 
 # Exibe o menu inicialmente ao abrir o script
